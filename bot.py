@@ -29,8 +29,9 @@ from pyvirtualdisplay import Display
 API_ID = 28590286
 API_HASH = "6a68cc6b41219dc57b7a52914032f92f"
 BOT_TOKEN = "7412939071:AAFgfHJGhMXw9AuGAAnPuGk_LbAlB5kX2KY"
-DOWNLOAD_DIR = "/content/downloads"
-RECORD_PATH = "/content/session_recording.mp4"
+# NEW (Render-compatible path)
+DOWNLOAD_DIR = "downloads"
+RECORD_PATH = "session_recording.mp4"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 os.environ["DISPLAY"] = ":0"
 
