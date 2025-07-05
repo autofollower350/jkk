@@ -1,16 +1,3 @@
-# Install Chrome version 136
-# Run in Colab only. Not required in deployment.
-# !wget -q https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.113/linux64/chrome-linux64.zip
-# !unzip -q chrome-linux64.zip
-# !mv chrome-linux64 /opt/chrome
-# !ln -sf /opt/chrome/chrome /usr/bin/google-chrome
-
-# !rm -f /usr/local/bin/chromedriver
-# !wget -q -O chromedriver.zip https://storage.googleapis.com/chrome-for-testing-public/136.0.7103.113/linux64/chromedriver-linux64.zip
-# !unzip -o chromedriver.zip
-# !mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
-# !chmod +x /usr/local/bin/chromedriver
-
 import nest_asyncio
 nest_asyncio.apply()
 
@@ -18,6 +5,7 @@ import os
 import time
 import asyncio
 import subprocess
+import threading
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from selenium import webdriver
@@ -25,11 +13,21 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from pyvirtualdisplay import Display
+from fastapi import FastAPI
+import uvicorn
 
-API_ID = 28590286
-API_HASH = "6a68cc6b41219dc57b7a52914032f92f"
-BOT_TOKEN = "7412939071:AAFgfHJGhMXw9AuGAAnPuGk_LbAlB5kX2KY"
-# NEW (Render-compatible path)
+# FastAPI instance
+app_web = FastAPI()
+
+@app_web.get("/")
+def home():
+    return {"status": "JNVU Bot is running on Render"}
+
+# Telegram bot config
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
 DOWNLOAD_DIR = "downloads"
 RECORD_PATH = "session_recording.mp4"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -39,9 +37,9 @@ driver = None
 display_screen = None
 ffmpeg_process = None
 
-app = Client("jnvu_result_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+bot = Client("jnvu_result_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-@app.on_message(filters.command("start"))
+@bot.on_message(filters.command("start"))
 async def start_handler(client: Client, message: Message):
     global driver, display_screen, ffmpeg_process
     await message.reply("🧑‍💻 Starting browser & screen recording...")
@@ -73,7 +71,6 @@ async def start_handler(client: Client, message: Message):
         })
 
         driver = webdriver.Chrome(service=Service("/usr/local/bin/chromedriver"), options=chrome_options)
-
         driver.get("https://share.google/RiGoUdAWQEkczypqg")
         time.sleep(2)
         driver.find_element(By.XPATH, "/html/body/form/div[3]/div/div[1]/fieldset/div/div[1]/div/div[1]/table/tbody/tr[2]/td/div/div/ul/li[1]/span[3]/a").click()
@@ -83,7 +80,7 @@ async def start_handler(client: Client, message: Message):
 
         await message.reply("✅ Bot is ready! Now send your roll number like `25rba00299`.")
 
-@app.on_message(filters.text & filters.private & ~filters.command(["start", "help"]))
+@bot.on_message(filters.text & filters.private & ~filters.command(["start", "help"]))
 async def handle_roll_number(client: Client, message: Message):
     global driver
     roll_number = message.text.strip()
@@ -128,10 +125,10 @@ async def handle_roll_number(client: Client, message: Message):
     except Exception as e:
         await message.reply(f"❌ Error: `{str(e)}`")
 
-async def main():
-    await app.start()
-    print("✅ JNVU Result Bot is running...")
-    await asyncio.Event().wait()
+def start_bot():
+    asyncio.run(bot.start())
+    asyncio.get_event_loop().run_until_complete(asyncio.Event().wait())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    threading.Thread(target=start_bot).start()
+    uvicorn.run(app_web, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
