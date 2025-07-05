@@ -1,0 +1,5 @@
+selenium
+pyrogram
+tgcrypto
+pyvirtualdisplay
+nest_asyncio
