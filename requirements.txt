@@ -1,5 +1,7 @@
-selenium
+fastapi
+uvicorn
 pyrogram
-tgcrypto
+selenium
 pyvirtualdisplay
+tgcrypto
 nest_asyncio
